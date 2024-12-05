@@ -1,11 +1,11 @@
 import os
 import re
+import subprocess
+import git
 
 # define the current solidity version to update to
 CURRENT_SOLIDITY_VERSION = "^0.8.0"
-# pattern to find lines that import safemath
 SAFE_MATH_IMPORT_PATTERN = re.compile(r"import\s+['\"].*SafeMath.*['\"]\s*;")
-# pattern to find safemath methods like .add(), .sub(), etc.
 SAFE_MATH_USAGE_PATTERN = re.compile(r"\.add\(|\.sub\(|\.mul\(|\.div\(|\.mod\(")
 
 def update_solidity_file(file_path):
@@ -52,13 +52,29 @@ def process_directory(directory):
                 file_path = os.path.join(root, file)
                 update_solidity_file(file_path)
 
+def clone_and_update_repo(repo_url, local_dir):
+    # clone the repository
+    print(f"cloning repository: {repo_url}")
+    repo = git.Repo.clone_from(repo_url, local_dir)
+
+    # process the directory to update solidity files
+    print(f"processing directory: {local_dir}")
+    process_directory(local_dir)
+
+    # commit and push changes
+    print("committing and pushing changes...")
+    repo.git.add(update=True)
+    repo.index.commit("update solidity files: remove safemath and update pragma version")
+    repo.git.push()
+    print("changes pushed to repository.")
+
 if __name__ == "__main__":
     import argparse
 
-    # set up the script to accept a directory path as input
-    parser = argparse.ArgumentParser(description="update solidity files to use the current version and remove safemath.")
-    parser.add_argument("directory", type=str, help="path to the folder with solidity files.")
+    parser = argparse.ArgumentParser(description="update solidity files in a github repository.")
+    parser.add_argument("repo_url", type=str, help="url of the github repository.")
+    parser.add_argument("local_dir", type=str, help="local directory to clone the repository into.")
     args = parser.parse_args()
 
-    process_directory(args.directory)
+    clone_and_update_repo(args.repo_url, args.local_dir)
 # @floor-licker 2024
